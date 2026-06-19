@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Zusammenfassung – Trainings-App</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#11121a" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <main class="app-main" id="app">
+    <div class="page-header"><div><h1>Zusammenfassung</h1><p id="range-label"></p></div></div>
+    <div class="row-between" style="margin-bottom: 1.25rem;">
+      <button type="button" id="prev-btn" class="btn-icon" aria-label="Vorherige Woche"></button>
+      <span class="card-subtle" id="current-indicator"></span>
+      <button type="button" id="next-btn" class="btn-icon" aria-label="Nächste Woche"></button>
+    </div>
+    <div id="summary-root" class="stack"></div>
+  </main>
+  <script type="module" src="js/summary.js"></script>
+</body>
+</html>

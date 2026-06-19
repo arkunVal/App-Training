@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Ziele – Trainings-App</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#11121a" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <main class="app-main" id="app">
+    <a href="week.html" class="back-link">‹ Zur Woche</a>
+    <div class="page-header">
+      <div><h1>Ziele</h1><p>Wettkämpfe &amp; Meilensteine</p></div>
+      <button type="button" id="add-goal-btn" class="btn-fab" style="width: 2.5rem; height: 2.5rem;" aria-label="Ziel hinzufügen"></button>
+    </div>
+    <div id="goal-form-root" class="hidden" style="margin-bottom: 1.25rem;"></div>
+    <div id="goals-list" class="stack"></div>
+  </main>
+  <script type="module" src="js/goals.js"></script>
+</body>
+</html>

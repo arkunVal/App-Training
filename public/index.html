@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trainings-App</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#11121a" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <script type="module">
+    import { auth } from "./js/firebase-init.js";
+    import { onAuthStateChanged } from "./js/auth.js";
+    onAuthStateChanged(auth, (user) => {
+      window.location.replace(user ? "today.html" : "login.html");
+    });
+  </script>
+</body>
+</html>

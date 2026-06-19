@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tag – Trainings-App</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#11121a" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <main class="app-main" id="app">
+    <a href="week.html" class="back-link">‹ Zur Woche</a>
+    <div class="page-header"><div><h1 id="date-title"></h1><p id="date-sub"></p></div></div>
+    <div id="day-view-root" class="stack"></div>
+  </main>
+  <script type="module" src="js/day.js"></script>
+</body>
+</html>

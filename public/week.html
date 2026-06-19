@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Woche – Trainings-App</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#11121a" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <main class="app-main" id="app">
+    <div class="page-header">
+      <div><h1>Woche</h1><p id="range-label"></p></div>
+    </div>
+    <div class="tab-switch">
+      <button type="button" id="tab-week" class="active">Woche</button>
+      <button type="button" id="tab-month">Monat</button>
+    </div>
+    <div class="row-between" style="margin-bottom: 1.1rem;">
+      <button type="button" id="prev-btn" class="btn-icon" aria-label="Zurück"></button>
+      <a href="goals.html" style="color: var(--flare-400); font-weight: 600; font-size: 0.875rem;">Ziele →</a>
+      <button type="button" id="next-btn" class="btn-icon" aria-label="Weiter"></button>
+    </div>
+    <div id="week-root"></div>
+  </main>
+  <script type="module" src="js/week.js"></script>
+</body>
+</html>

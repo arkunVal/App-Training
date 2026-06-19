@@ -1,0 +1,19 @@
+{
+  "name": "Trainings- & Life-Log",
+  "short_name": "Trainings-Log",
+  "description": "Privates Trainings- & Life-Log",
+  "start_url": "/today.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#11121a",
+  "theme_color": "#11121a",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

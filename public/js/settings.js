@@ -1,13 +1,14 @@
 import { requireAuth } from "./auth-guard.js";
 import { renderEnvBadge, getEnv, setEnv } from "./env.js";
 import { renderBottomNav } from "./nav.js";
-import { el, clear, card, chipGroup } from "./ui.js";
+import { el, clear, card, chipGroup, multiChipGroup, stepper } from "./ui.js";
 import { auth } from "./firebase-init.js";
 import { signOut } from "./auth.js";
 import { userDoc } from "./firestore-paths.js";
 import { getDoc, setDoc } from "./firestore.js";
-import { ZONES } from "./constants.js";
+import { ZONES, GENDERS, SPORTS } from "./constants.js";
 import { formatMmSs, parseMmSs } from "./format.js";
+import { friendlyFirestoreError, showInlineError, hideInlineError } from "./firestore-errors.js";
 
 renderEnvBadge();
 renderBottomNav("settings.html");
@@ -28,7 +29,18 @@ function defaultProfile() {
     hrZones[z] = { min: 0, max: 0 };
     paceZones[z] = { minSecPerKm: null, maxSecPerKm: null };
   });
-  return { displayName: "", maxHr: 190, restingHr: 55, hrZones, paceZones };
+  return {
+    displayName: "",
+    age: 30,
+    gender: null,
+    weightKg: 70,
+    heightCm: 175,
+    sports: [],
+    maxHr: 190,
+    restingHr: 55,
+    hrZones,
+    paceZones,
+  };
 }
 
 function renderEnvCard() {
@@ -66,20 +78,50 @@ function renderForm(profile) {
   const values = JSON.parse(JSON.stringify(profile));
   if (!values.hrZones) values.hrZones = {};
   if (!values.paceZones) values.paceZones = {};
+  if (values.age === undefined) values.age = 30;
+  if (values.gender === undefined) values.gender = null;
+  if (values.weightKg === undefined) values.weightKg = 70;
+  if (values.heightCm === undefined) values.heightCm = 175;
+  if (!values.sports) values.sports = [];
 
   const nameInput = el("input", { class: "input", value: values.displayName ?? "", oninput: (e) => (values.displayName = e.target.value) });
-  const maxHrInput = el("input", { type: "number", class: "input", value: values.maxHr ?? 190, oninput: (e) => (values.maxHr = Number(e.target.value)) });
-  const restingHrInput = el("input", { type: "number", class: "input", value: values.restingHr ?? 55, oninput: (e) => (values.restingHr = Number(e.target.value)) });
 
-  const profileCard = card({
+  const aboutCard = card({
     className: "stack",
     children: [
-      el("p", { class: "card-title" }, "Profil"),
+      el("p", { class: "card-title" }, "Über dich"),
       el("div", {}, [el("label", { class: "label" }, "Name"), nameInput]),
-      el("div", { class: "row" }, [
-        el("div", { class: "flex-1" }, [el("label", { class: "label" }, "Max. Herzfrequenz"), maxHrInput]),
-        el("div", { class: "flex-1" }, [el("label", { class: "label" }, "Ruheherzfrequenz"), restingHrInput]),
+      stepper({ label: "Alter", value: values.age, min: 10, max: 99, onChange: (v) => (values.age = v), suffix: "Jahre" }),
+      el("div", {}, [
+        el("p", { class: "label" }, "Geschlecht"),
+        chipGroup(GENDERS, values.gender, (v) => (values.gender = v), { accent: "tide", allowDeselect: true }),
       ]),
+    ],
+  });
+
+  const bodyCard = card({
+    className: "stack",
+    children: [
+      el("p", { class: "card-title" }, "Körperdaten"),
+      stepper({ label: "Gewicht", value: values.weightKg, step: 0.5, min: 30, max: 200, onChange: (v) => (values.weightKg = v), suffix: "kg" }),
+      stepper({ label: "Größe", value: values.heightCm, step: 1, min: 120, max: 220, onChange: (v) => (values.heightCm = v), suffix: "cm" }),
+    ],
+  });
+
+  const sportsCard = card({
+    className: "stack",
+    children: [
+      el("p", { class: "card-title" }, "Sportarten"),
+      multiChipGroup(SPORTS.map((s) => ({ value: s, label: s })), values.sports, (v) => (values.sports = v), { accent: "ember" }),
+    ],
+  });
+
+  const trainingDataCard = card({
+    className: "stack",
+    children: [
+      el("p", { class: "card-title" }, "Trainingsdaten"),
+      stepper({ label: "Max. Herzfrequenz", value: values.maxHr ?? 190, min: 120, max: 230, onChange: (v) => (values.maxHr = v), suffix: "bpm" }),
+      stepper({ label: "Ruheherzfrequenz", value: values.restingHr ?? 55, min: 30, max: 100, onChange: (v) => (values.restingHr = v), suffix: "bpm" }),
     ],
   });
 
@@ -139,15 +181,23 @@ function renderForm(profile) {
 
   const saveBtn = el("button", { type: "button", class: "btn btn-primary" }, "Speichern");
   const savedMsg = el("p", { class: "text-success hidden" }, "Gespeichert ✓");
+  const saveRow = el("div", { class: "row" }, [saveBtn, savedMsg]);
+  const saveSection = el("div", { class: "stack-sm" }, [saveRow]);
   saveBtn.addEventListener("click", async () => {
     saveBtn.disabled = true;
     const original = saveBtn.textContent;
     saveBtn.textContent = "Speichern …";
-    await setDoc(userDoc(uid, "profile", "main"), { ...values, updatedAtMs: Date.now() });
-    saveBtn.disabled = false;
-    saveBtn.textContent = original;
-    savedMsg.classList.remove("hidden");
-    setTimeout(() => savedMsg.classList.add("hidden"), 2000);
+    hideInlineError(saveSection);
+    try {
+      await setDoc(userDoc(uid, "profile", "main"), { ...values, updatedAtMs: Date.now() });
+      savedMsg.classList.remove("hidden");
+      setTimeout(() => savedMsg.classList.add("hidden"), 2000);
+    } catch (err) {
+      showInlineError(saveSection, friendlyFirestoreError(err));
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = original;
+    }
   });
 
   const signOutBtn = el("button", { type: "button", class: "btn btn-secondary" }, "Abmelden");
@@ -158,10 +208,13 @@ function renderForm(profile) {
 
   root.appendChild(
     el("div", { class: "stack" }, [
-      profileCard,
+      aboutCard,
+      bodyCard,
+      sportsCard,
+      trainingDataCard,
       hrCard,
       paceCard,
-      el("div", { class: "row" }, [saveBtn, savedMsg]),
+      saveSection,
       renderEnvCard(),
       signOutBtn,
     ])

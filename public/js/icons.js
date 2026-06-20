@@ -32,6 +32,10 @@ const PATHS = {
   grid: '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
   logOut: '<path d="M9 4H5V20H9"/><path d="M13 12H21"/><path d="M18 8L22 12L18 16"/>',
   sparkles: '<path d="M12 3L13.2 8.8L19 10L13.2 11.2L12 17L10.8 11.2L5 10L10.8 8.8L12 3Z"/>',
+  user: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20C5 16.5 8 14 12 14S19 16.5 19 20"/>',
+  scale: '<circle cx="12" cy="13" r="7"/><path d="M12 13L15 10"/><path d="M9 4H15"/>',
+  ruler: '<path d="M5 16L16 5L19 8L8 19L5 16Z"/><path d="M9.5 11.5L11.5 13.5"/><path d="M12 9L14 11"/><path d="M14.5 6.5L16.5 8.5"/>',
+  arrowRight: '<path d="M5 12H19"/><path d="M13 6L19 12L13 18"/>',
 };
 
 export function iconSvg(name, size = 18) {

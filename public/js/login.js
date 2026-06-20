@@ -1,6 +1,7 @@
 import { auth } from "./firebase-init.js";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "./auth.js";
 import { redirectIfLoggedIn } from "./auth-guard.js";
+import { resolveEntryDestination } from "./entry-redirect.js";
 
 redirectIfLoggedIn("today.html");
 
@@ -47,12 +48,16 @@ form.addEventListener("submit", async (e) => {
   const original = submitBtn.textContent;
   submitBtn.textContent = "Einen Moment …";
   try {
+    let user;
     if (mode === "signin") {
-      await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
+      const result = await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
+      user = result.user;
     } else {
-      await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
+      const result = await createUserWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
+      user = result.user;
     }
-    window.location.href = "today.html";
+    const destination = await resolveEntryDestination(user.uid);
+    window.location.href = destination;
   } catch (err) {
     errorMsg.textContent = germanAuthError(err.code);
     errorMsg.classList.remove("hidden");

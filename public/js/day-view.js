@@ -2,12 +2,13 @@
 // Trainings mit Checkbox, To-Do-Liste) für ein gegebenes Datum. Wird sowohl
 // von today.html (heute, editierbar) als auch von day.html (beliebiger Tag,
 // nur lesbar bzgl. Morgenbericht) verwendet.
-import { el, clear, card, checkbox, progressBar, zoneBadge } from "./ui.js";
+import { el, clear, card, checkbox, progressBar, zoneBadge, showToast } from "./ui.js";
 import { iconSvg, SPORT_ICONS } from "./icons.js";
 import { userDoc, userCollection } from "./firestore-paths.js";
 import { getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where } from "./firestore.js";
 import { formatSleep, formatMinutes, formatDistanceKm } from "./format.js";
 import { summarizeStructure } from "./training-summary.js";
+import { friendlyFirestoreError } from "./firestore-errors.js";
 
 const FATIGUE_TAG_LABEL = { frisch: "Frisch", ermuedet: "Ermüdet", muskelkater: "Muskelkater" };
 const STRESS_LABEL = { niedrig: "Niedrig", medium: "Mittel", hoch: "Hoch" };
@@ -86,7 +87,12 @@ function renderTrainingCard(t, uid) {
   const cb = checkbox({
     checked: t.status === "erledigt",
     onChange: async (checked) => {
-      await updateDoc(userDoc(uid, "trainings", t.id), { status: checked ? "erledigt" : "geplant" });
+      try {
+        await updateDoc(userDoc(uid, "trainings", t.id), { status: checked ? "erledigt" : "geplant" });
+      } catch (err) {
+        cb.setChecked(!checked);
+        showToast(friendlyFirestoreError(err));
+      }
     },
   });
 
@@ -152,10 +158,18 @@ function renderTodoList(uid, date, initialTodos) {
       const cb = checkbox({
         checked: todo.done,
         onChange: async (checked) => {
+          const previous = todo.done;
           todo.done = checked;
           renderList();
           renderCounts();
-          await updateDoc(userDoc(uid, "todos", todo.id), { done: checked });
+          try {
+            await updateDoc(userDoc(uid, "todos", todo.id), { done: checked });
+          } catch (err) {
+            todo.done = previous;
+            renderList();
+            renderCounts();
+            showToast(friendlyFirestoreError(err));
+          }
         },
       });
       const delBtn = el("button", {
@@ -164,10 +178,18 @@ function renderTodoList(uid, date, initialTodos) {
         style: "width:1.75rem;height:1.75rem;background:none;box-shadow:none;",
         html: iconSvg("x", 15),
         onClick: async () => {
+          const previous = todos;
           todos = todos.filter((t) => t.id !== todo.id);
           renderList();
           renderCounts();
-          await deleteDoc(userDoc(uid, "todos", todo.id));
+          try {
+            await deleteDoc(userDoc(uid, "todos", todo.id));
+          } catch (err) {
+            todos = previous;
+            renderList();
+            renderCounts();
+            showToast(friendlyFirestoreError(err));
+          }
         },
       });
       listEl.appendChild(el("div", { class: "row" }, [cb, textEl, delBtn]));
@@ -185,14 +207,21 @@ function renderTodoList(uid, date, initialTodos) {
     todos.push(optimistic);
     renderList();
     renderCounts();
-    const ref = await addDoc(userCollection(uid, "todos"), {
-      date,
-      text,
-      done: false,
-      position: todos.length,
-      createdAtMs: Date.now(),
-    });
-    optimistic.id = ref.id;
+    try {
+      const ref = await addDoc(userCollection(uid, "todos"), {
+        date,
+        text,
+        done: false,
+        position: todos.length,
+        createdAtMs: Date.now(),
+      });
+      optimistic.id = ref.id;
+    } catch (err) {
+      todos = todos.filter((t) => t.id !== optimistic.id);
+      renderList();
+      renderCounts();
+      showToast(friendlyFirestoreError(err));
+    }
   }
 
   const form = el(

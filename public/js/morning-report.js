@@ -7,12 +7,21 @@ import { getDoc, setDoc } from "./firestore.js";
 import { todayIso, weekdayLong, formatDayMonth } from "./date-utils.js";
 import { FATIGUE_TAGS, STRESS_LEVELS } from "./constants.js";
 import { hmFromMinutes, minutesFromHm } from "./format.js";
+import { friendlyFirestoreError, showInlineError } from "./firestore-errors.js";
+import { skipMorningReportToday } from "./entry-redirect.js";
 
 renderEnvBadge();
 renderBottomNav("today.html");
 
 const date = todayIso();
 document.getElementById("date-label").textContent = `${weekdayLong(date)}, ${formatDayMonth(date)}`;
+
+const skipLink = document.getElementById("skip-link");
+skipLink.addEventListener("click", (e) => {
+  e.preventDefault();
+  skipMorningReportToday();
+  window.location.href = "today.html";
+});
 
 const root = document.getElementById("form-root");
 let uid = null;
@@ -90,13 +99,20 @@ function renderForm(existing) {
   });
 
   const saveBtn = el("button", { type: "button", class: "btn btn-primary" }, "Bericht speichern");
+  const saveSection = el("div", { class: "stack-sm" }, [saveBtn]);
   saveBtn.addEventListener("click", async () => {
     saveBtn.disabled = true;
     const original = saveBtn.textContent;
     saveBtn.textContent = "Speichern …";
-    await setDoc(userDoc(uid, "morningReports", date), { ...values, date, createdAtMs: Date.now() });
-    window.location.href = "today.html";
+    try {
+      await setDoc(userDoc(uid, "morningReports", date), { ...values, date, createdAtMs: Date.now() });
+      window.location.href = "today.html";
+    } catch (err) {
+      showInlineError(saveSection, friendlyFirestoreError(err));
+      saveBtn.disabled = false;
+      saveBtn.textContent = original;
+    }
   });
 
-  root.appendChild(el("div", { class: "stack" }, [fatigueCard, stressCard, sleepCard, saveBtn]));
+  root.appendChild(el("div", { class: "stack" }, [fatigueCard, stressCard, sleepCard, saveSection]));
 }

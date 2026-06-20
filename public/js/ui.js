@@ -50,6 +50,48 @@ export function iconButton(name, { className = "btn-icon", size = 16, onClick, a
 }
 
 /** Einzeiliges Chip-Auswahlfeld. options: [{value,label}]. */
+/** Mehrfachauswahl-Chips (z.B. Sportarten im Profil). Gibt ein Array zurück. */
+export function multiChipGroup(options, initialValues = [], onChange, { accent = "ember" } = {}) {
+  let current = new Set(initialValues ?? []);
+  const container = el("div", { class: "chip-group" });
+
+  function render() {
+    container.querySelectorAll("button").forEach((btn) => {
+      btn.classList.toggle("selected", current.has(btn.dataset.value));
+    });
+  }
+
+  options.forEach((opt) => {
+    const value = typeof opt === "string" ? opt : opt.value;
+    const label = typeof opt === "string" ? opt : opt.label;
+    const btn = el(
+      "button",
+      {
+        type: "button",
+        class: "chip",
+        "data-value": value,
+        "data-accent": accent,
+        onClick: () => {
+          if (current.has(value)) current.delete(value);
+          else current.add(value);
+          render();
+          onChange(Array.from(current));
+        },
+      },
+      label
+    );
+    container.appendChild(btn);
+  });
+
+  render();
+  container.getValue = () => Array.from(current);
+  container.setValue = (vals) => {
+    current = new Set(vals ?? []);
+    render();
+  };
+  return container;
+}
+
 export function chipGroup(options, initialValue, onChange, { accent = "ember", allowDeselect = false } = {}) {
   let current = initialValue;
   const container = el("div", { class: "chip-group" });
@@ -262,4 +304,18 @@ export function pageHeader(title, subtitle, actionNode) {
   const children = [left];
   if (actionNode) children.push(el("div", {}, actionNode));
   return el("div", { class: "page-header" }, children);
+}
+
+/** Zeigt eine kurze, automatisch verschwindende Meldung am unteren
+ * Bildschirmrand. Wird für Inline-Aktionen genutzt (z.B. Checkbox-Toggle),
+ * bei denen kein dediziertes Formular-Fehlerfeld existiert. */
+export function showToast(message) {
+  document.querySelectorAll(".js-toast").forEach((t) => t.remove());
+  const toast = el("div", { class: "toast js-toast" }, message);
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("visible"));
+  setTimeout(() => {
+    toast.classList.remove("visible");
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
 }

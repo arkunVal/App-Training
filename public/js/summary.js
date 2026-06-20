@@ -8,6 +8,7 @@ import { getDocs, getDoc, setDoc, query, where } from "./firestore.js";
 import { todayIso, weekStartIso, weekDaysIso, addWeeksIso, formatWeekRangeLabel, weekdayShort } from "./date-utils.js";
 import { formatMinutes, formatDistanceKm, formatSleep } from "./format.js";
 import { STRESS_TO_NUM, NUM_TO_STRESS_LABEL } from "./constants.js";
+import { friendlyFirestoreError, showInlineError } from "./firestore-errors.js";
 
 renderEnvBadge();
 renderBottomNav("summary.html");
@@ -97,19 +98,25 @@ function renderNotesForm(initial) {
 
   const savedMsg = el("p", { class: "text-success hidden" }, "Gespeichert ✓");
   const saveBtn = el("button", { type: "button", class: "btn btn-secondary" }, "Notizen speichern");
+  const saveSection = el("div", { class: "stack-sm" }, [el("div", { class: "row" }, [saveBtn, savedMsg])]);
   saveBtn.addEventListener("click", async () => {
     saveBtn.disabled = true;
     const original = saveBtn.textContent;
     saveBtn.textContent = "Speichern …";
-    await setDoc(userDoc(uid, "weeklyNotes", weekStart), {
-      wentWell: wentWellInput.value.trim(),
-      issues: issuesInput.value.trim(),
-      updatedAtMs: Date.now(),
-    });
-    saveBtn.disabled = false;
-    saveBtn.textContent = original;
-    savedMsg.classList.remove("hidden");
-    setTimeout(() => savedMsg.classList.add("hidden"), 2000);
+    try {
+      await setDoc(userDoc(uid, "weeklyNotes", weekStart), {
+        wentWell: wentWellInput.value.trim(),
+        issues: issuesInput.value.trim(),
+        updatedAtMs: Date.now(),
+      });
+      savedMsg.classList.remove("hidden");
+      setTimeout(() => savedMsg.classList.add("hidden"), 2000);
+    } catch (err) {
+      showInlineError(saveSection, friendlyFirestoreError(err));
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = original;
+    }
   });
 
   return card({
@@ -118,7 +125,7 @@ function renderNotesForm(initial) {
       el("p", { class: "card-title" }, "Wochenrückblick"),
       el("div", {}, [el("label", { class: "label" }, "Was lief gut?"), wentWellInput]),
       el("div", {}, [el("label", { class: "label" }, "Was gab es für Probleme?"), issuesInput]),
-      el("div", { class: "row" }, [saveBtn, savedMsg]),
+      saveSection,
     ],
   });
 }

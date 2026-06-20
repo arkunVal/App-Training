@@ -5,6 +5,7 @@ import { el, clear, card, chipGroup, stepper, zonePicker } from "./ui.js";
 import { iconSvg } from "./icons.js";
 import { SPORTS, SEGMENT_TYPES } from "./constants.js";
 import { todayIso } from "./date-utils.js";
+import { friendlyFirestoreError, showInlineError, hideInlineError } from "./firestore-errors.js";
 
 function minutesFromSec(sec) {
   return sec ? Math.round(sec / 60) : 0;
@@ -286,18 +287,21 @@ export function renderTrainingForm(container, options) {
 
   // --- Speichern-Button ---
   const submitBtn = el("button", { type: "button", class: "btn btn-primary" }, submitLabel);
+  const submitSection = el("div", { class: "stack-sm" }, [submitBtn]);
   submitBtn.addEventListener("click", async () => {
     submitBtn.disabled = true;
     const original = submitBtn.textContent;
     submitBtn.textContent = "Speichern …";
+    hideInlineError(submitSection);
     try {
       await onSubmit(values);
-    } finally {
+    } catch (err) {
+      showInlineError(submitSection, friendlyFirestoreError(err));
       submitBtn.disabled = false;
       submitBtn.textContent = original;
     }
   });
-  formChildren.push(submitBtn);
+  formChildren.push(submitSection);
 
   if (mode === "edit" && onDelete) {
     const deleteBtn = el(
@@ -305,13 +309,22 @@ export function renderTrainingForm(container, options) {
       { type: "button", class: "btn btn-ghost text-error", style: "margin-top: 0.5rem;" },
       [el("span", { html: iconSvg("trash", 15), style: "margin-right:0.4rem;display:inline-flex;vertical-align:-2px;" }), "Training löschen"]
     );
+    const deleteSection = el("div", { class: "stack-sm" }, [deleteBtn]);
     deleteBtn.addEventListener("click", async () => {
       if (!window.confirm("Dieses Training wirklich löschen?")) return;
       deleteBtn.disabled = true;
+      const original = deleteBtn.textContent;
       deleteBtn.textContent = "Löschen …";
-      await onDelete();
+      hideInlineError(deleteSection);
+      try {
+        await onDelete();
+      } catch (err) {
+        showInlineError(deleteSection, friendlyFirestoreError(err));
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = original;
+      }
     });
-    formChildren.push(deleteBtn);
+    formChildren.push(deleteSection);
   }
 
   container.appendChild(el("div", { class: "stack" }, formChildren));

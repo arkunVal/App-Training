@@ -18,8 +18,9 @@ training-app-firebase/
 ├── .firebaserc              Firebase-Projektzuordnung
 ├── firestore.rules          Sicherheitsregeln
 └── public/                  Alles, was ausgeliefert wird (Vercel "Output Directory")
-    ├── index.html           Einstiegspunkt, leitet zu today.html oder login.html weiter
+    ├── index.html           Einstiegspunkt, leitet je nach Status weiter (siehe unten)
     ├── login.html           Anmelden / Registrieren
+    ├── onboarding.html      Profil-Ersteinrichtung (Name, Alter, Gewicht, Sportarten, …)
     ├── today.html           Heute-Ansicht (Morgenbericht, Trainings, To-Dos)
     ├── day.html             Beliebiger Tag (read-only bzgl. Morgenbericht)
     ├── week.html            Wochenstreifen + Monatsansicht
@@ -47,6 +48,49 @@ training-app-firebase/
 | `training-form.js` | Trainingsformular inkl. Struktur-/Segment-Editor |
 | `ui.js`, `icons.js`, `nav.js` | Wiederverwendbare UI-Bausteine, eigenes Icon-Set, Navigation |
 | `date-utils.js`, `format.js` | Datums- und Formatierungs-Hilfsfunktionen |
+| `entry-redirect.js` | Bestimmt das Ziel nach dem Login: Onboarding → Morgenbericht → Heute |
+| `firestore-errors.js` | Übersetzt Firestore-Fehler in sichtbare, verständliche Meldungen |
+
+## Profil & erster Start
+
+Nach der ersten Anmeldung führt die App automatisch zu `onboarding.html`,
+wo Name, Alter, Geschlecht, Gewicht, Größe und die ausgeübten Sportarten
+erfasst werden. Aus Alter und einer Standardformel (220 − Alter) wird
+direkt eine erste Schätzung der Herzfrequenz-Zonen Z1–Z5 angelegt — die
+lässt sich danach jederzeit unter **Einstellungen** anpassen, ebenso wie
+alle anderen Profilangaben.
+
+Ist das Profil einmal angelegt, prüft die App bei jedem Login, ob für den
+heutigen Tag schon ein Morgenbericht existiert. Falls nicht, geht es direkt
+zu `morning-report.html` — mit der Möglichkeit, das für heute über
+"Heute überspringen" zu überspringen. Diese Logik lebt zentral in
+`js/entry-redirect.js` und wird sowohl von `index.html` als auch von
+`login.js` genutzt.
+
+## Wenn das Speichern fehlschlägt
+
+Jede Stelle, an der Daten geschrieben werden (Profil, Trainings, To-Dos,
+Morgenbericht, Ziele, Wochennotizen), fängt Firestore-Fehler ab und zeigt
+eine verständliche Meldung statt eines stillen Fehlschlags — siehe
+`js/firestore-errors.js`. Optimistische UI-Updates (z.B. das sofortige
+Abhaken eines To-Dos) werden bei einem Fehler automatisch zurückgenommen.
+
+Die mit Abstand häufigste Ursache für einen fehlgeschlagenen Speichervorgang
+ist eine der folgenden (beide sind einmalige Einrichtungsschritte in der
+Firebase Console, kein Code-Problem):
+
+1. **Es existiert noch keine Firestore-Datenbank** im Firebase-Projekt.
+   In der [Firebase Console](https://console.firebase.google.com/) unter
+   **Firestore Database → Datenbank erstellen** einmalig anlegen
+   (Produktionsmodus reicht, die App-eigenen `firestore.rules` regeln den
+   Zugriff danach).
+2. **Die Sicherheitsregeln wurden noch nicht deployt.** Ohne
+   `firebase deploy --only firestore:rules` gelten Firebases restriktive
+   Standardregeln, die jeden Zugriff verweigern. Der Befehl steht auch
+   unter "Setup & Deployment" weiter unten.
+
+Bei einem `permission-denied`-Fehler zeigt die App genau diesen Hinweis
+direkt im UI an.
 
 ## Firestore-Datenmodell
 
@@ -55,7 +99,7 @@ nach Umgebung und Nutzer:
 
 ```
 apps/trainingsApp/envs/{prod|dev}/users/{uid}/
-  ├── profile/main              Profil, HF-Zonen, Pace-Zonen
+  ├── profile/main              Name, Alter, Geschlecht, Gewicht, Größe, Sportarten, HF-/Pace-Zonen
   ├── morningReports/{date}     Ein Dokument pro Tag (ID = YYYY-MM-DD)
   ├── todos/{id}                 To-Dos mit date-Feld
   ├── trainings/{id}             Trainings mit date-Feld + structure[]
@@ -179,7 +223,17 @@ Freischaltung nötig — das ist bei Firebase standardmäßig autorisiert.)
 ## Design
 
 Dunkles, mobiles Design mit vier Hauptbereichen über eine Bottom-Navigation:
-Eingang (Heute), Woche, Zusammenfassung, Einstellungen. Farbkodierung:
-Orange = Kalender/Training, Blau = Wochenberichte/Schlaf, Weichrot = Ziele.
-Eine einheitliche Z1–Z5-Zonenfarbskala (Blau → Grün → Gelb → Orange → Rot)
-zieht sich durch die gesamte App.
+Eingang (Heute), Woche, Zusammenfassung, Einstellungen.
+
+Die App begleitet den Tag von der Morgen-Einschätzung bis zur
+Abend-Reflexion — die Akzentfarben bilden deshalb einen durchgehenden
+**Tageslicht-Verlauf** von kühlem Morgenblau über sonniges Mittagsgold bis
+zu warmem Abendrot. Dieselbe Skala färbt die Trainings-Zonen Z1–Z5 ein.
+Eine dünne Verlaufslinie ("Horizontlinie") aus genau diesen Farben taucht
+als wiederkehrendes Signaturelement unter jeder Seitenüberschrift, in
+Fortschrittsbalken und im Wochenchart auf.
+
+Typografie: **Bricolage Grotesque** für Überschriften und große Zahlen,
+**IBM Plex Sans** als Brotschrift, **IBM Plex Mono** für Daten/Messwerte
+(Dauer, Distanz, Herzfrequenz). Alle drei werden direkt über Google Fonts
+geladen (`css/styles.css`, ganz oben).

@@ -8,6 +8,7 @@ import { userCollection, userDoc } from "./firestore-paths.js";
 import { getDocs, addDoc, deleteDoc, query, orderBy } from "./firestore.js";
 import { todayIso, daysUntil, formatDayMonth } from "./date-utils.js";
 import { formatSecondsAsClock } from "./format.js";
+import { friendlyFirestoreError, showInlineError } from "./firestore-errors.js";
 
 renderEnvBadge();
 renderBottomNav("week.html");
@@ -82,9 +83,16 @@ function renderGoalCard(g) {
 
 async function removeGoal(id) {
   if (!window.confirm("Dieses Ziel wirklich löschen?")) return;
+  const previous = goals;
   goals = goals.filter((g) => g.id !== id);
   renderList();
-  await deleteDoc(userDoc(uid, "goals", id));
+  try {
+    await deleteDoc(userDoc(uid, "goals", id));
+  } catch (err) {
+    goals = previous;
+    renderList();
+    window.alert(friendlyFirestoreError(err));
+  }
 }
 
 function parseTimeToSec(input) {
@@ -113,24 +121,32 @@ function renderForm() {
   });
 
   const saveBtn = el("button", { type: "button", class: "btn btn-primary" }, "Ziel speichern");
+  const formActions = el("div", { class: "stack-sm" }, [el("div", { class: "row" }, [saveBtn, cancelBtn])]);
   saveBtn.addEventListener("click", async () => {
     if (!values.title.trim()) {
       titleInput.focus();
       return;
     }
     saveBtn.disabled = true;
+    const original = saveBtn.textContent;
     saveBtn.textContent = "Speichern …";
-    await addDoc(userCollection(uid, "goals"), {
-      title: values.title.trim(),
-      raceType: values.raceType,
-      eventDate: values.eventDate,
-      targetTimeSec: parseTimeToSec(values.targetTime),
-      notes: values.notes.trim() || null,
-      createdAtMs: Date.now(),
-    });
-    formRoot.classList.add("hidden");
-    addBtn.classList.remove("hidden");
-    await loadGoals();
+    try {
+      await addDoc(userCollection(uid, "goals"), {
+        title: values.title.trim(),
+        raceType: values.raceType,
+        eventDate: values.eventDate,
+        targetTimeSec: parseTimeToSec(values.targetTime),
+        notes: values.notes.trim() || null,
+        createdAtMs: Date.now(),
+      });
+      formRoot.classList.add("hidden");
+      addBtn.classList.remove("hidden");
+      await loadGoals();
+    } catch (err) {
+      showInlineError(formActions, friendlyFirestoreError(err));
+      saveBtn.disabled = false;
+      saveBtn.textContent = original;
+    }
   });
 
   formRoot.appendChild(
@@ -145,7 +161,7 @@ function renderForm() {
         el("div", {}, [el("label", { class: "label" }, "Datum"), dateInput]),
         el("div", {}, [el("label", { class: "label" }, "Zielzeit (h:mm:ss, optional)"), timeInput]),
         el("div", {}, [el("label", { class: "label" }, "Notizen"), notesInput]),
-        el("div", { class: "row" }, [saveBtn, cancelBtn]),
+        formActions,
       ],
     })
   );

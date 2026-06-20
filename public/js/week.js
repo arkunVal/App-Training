@@ -2,7 +2,7 @@ import { requireAuth } from "./auth-guard.js";
 import { renderEnvBadge } from "./env.js";
 import { renderBottomNav } from "./nav.js";
 import { el, clear } from "./ui.js";
-import { iconSvg } from "./icons.js";
+import { iconSvg, SPORT_ICONS } from "./icons.js";
 import { userCollection } from "./firestore-paths.js";
 import { getDocs, query, where } from "./firestore.js";
 import {
@@ -96,6 +96,40 @@ function dayDots(info) {
   return dots;
 }
 
+/** Größere Indikatoren für die Wochenansicht: ein kleines Sport-Icon statt
+ * eines reinen Punktes, plus Zähler bei mehreren Trainings am selben Tag. */
+function dayIndicators(info) {
+  const indicators = [];
+  if (info.trainings.length > 0) {
+    const first = info.trainings[0];
+    const allDone = info.trainings.every((t) => t.status === "erledigt");
+    const sportIcon = SPORT_ICONS[first.sport] ?? "circle";
+    indicators.push(
+      el("span", {
+        class: "wd-sport-icon",
+        style: allDone
+          ? "color:var(--sprout-400);background:rgba(63,179,172,0.16);"
+          : "color:var(--ember-400);background:rgba(239,140,74,0.16);",
+        html: iconSvg(sportIcon, 12),
+      })
+    );
+    if (info.trainings.length > 1) {
+      indicators.push(el("span", { class: "wd-count" }, `+${info.trainings.length - 1}`));
+    }
+  }
+  if (info.todos.length > 0) {
+    const openCount = info.todos.filter((t) => !t.done).length;
+    indicators.push(
+      el("span", {
+        class: "wd-sport-icon",
+        style: openCount > 0 ? "color:var(--tide-400);background:rgba(79,143,232,0.16);" : "color:var(--ink-500);background:var(--ink-800);",
+        html: iconSvg("check", 11),
+      })
+    );
+  }
+  return indicators;
+}
+
 function renderWeekStrip(weekStart, dataByDate) {
   const days = weekDaysIso(weekStart);
   return el(
@@ -106,7 +140,7 @@ function renderWeekStrip(weekStart, dataByDate) {
       return el("a", { href: `day.html?date=${iso}`, class: `week-day${isTodayIso(iso) ? " today" : ""}` }, [
         el("span", { class: "wd-label" }, weekdayShort(iso)),
         el("span", { class: "wd-num" }, String(parseIso(iso).getDate())),
-        el("div", { class: "wd-dots" }, dayDots(info)),
+        el("div", { class: "wd-indicators" }, dayIndicators(info)),
       ]);
     })
   );

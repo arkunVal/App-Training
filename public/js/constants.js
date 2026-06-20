@@ -36,3 +36,9 @@ export const SEGMENT_TYPES = [
 
 export const STRESS_TO_NUM = { niedrig: 1, medium: 2, hoch: 3 };
 export const NUM_TO_STRESS_LABEL = { 1: "Niedrig", 2: "Mittel", 3: "Hoch" };
+
+export const GENDERS = [
+  { value: "weiblich", label: "Weiblich" },
+  { value: "maennlich", label: "Männlich" },
+  { value: "divers", label: "Divers" },
+];
